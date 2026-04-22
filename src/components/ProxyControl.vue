@@ -1,6 +1,9 @@
 <script setup>
-import { ref, defineProps, defineEmits } from "vue";
+import { ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { enableProxy, disableProxy } from "../utils/api";
+
+const { t } = useI18n();
 
 const props = defineProps({
   activeConfig: {
@@ -21,7 +24,7 @@ const success = ref("");
 
 async function handleEnable() {
   if (!props.activeConfig) {
-    error.value = "Please select a configuration first";
+    error.value = t('proxyControl.selectConfigFirst');
     return;
   }
 
@@ -31,13 +34,13 @@ async function handleEnable() {
 
   try {
     await enableProxy(props.activeConfig);
-    success.value = "Proxy enabled successfully!";
+    success.value = t('proxyControl.success.enabled');
     emit("status-changed", true);
     setTimeout(() => {
       success.value = "";
     }, 3000);
   } catch (err) {
-    error.value = err.message || "Failed to enable proxy";
+    error.value = err.message || t('proxyControl.error.enableFailed');
   } finally {
     loading.value = false;
   }
@@ -50,13 +53,13 @@ async function handleDisable() {
 
   try {
     await disableProxy();
-    success.value = "Proxy disabled successfully!";
+    success.value = t('proxyControl.success.disabled');
     emit("status-changed", false);
     setTimeout(() => {
       success.value = "";
     }, 3000);
   } catch (err) {
-    error.value = err.message || "Failed to disable proxy";
+    error.value = err.message || t('proxyControl.error.disableFailed');
   } finally {
     loading.value = false;
   }
@@ -66,10 +69,10 @@ async function handleDisable() {
 <template>
   <div class="proxy-control">
     <div class="control-header">
-      <h3>Proxy Control</h3>
+      <h3>{{ t('proxyControl.title') }}</h3>
       <div :class="['status-indicator', proxyEnabled ? 'enabled' : 'disabled']">
         <span class="status-dot"></span>
-        <span class="status-text">{{ proxyEnabled ? "Connected" : "Disconnected" }}</span>
+        <span class="status-text">{{ proxyEnabled ? t('proxyControl.connected') : t('proxyControl.disconnected') }}</span>
       </div>
     </div>
 
@@ -83,11 +86,11 @@ async function handleDisable() {
 
     <div class="control-content">
       <div v-if="!activeConfig" class="warning-message">
-        <p>Please select a configuration to enable proxy</p>
+        <p>{{ t('proxyControl.selectConfigFirst') }}</p>
       </div>
 
       <div v-else class="active-config-info">
-        <p class="info-label">Active Configuration:</p>
+        <p class="info-label">{{ t('proxyControl.activeConfig') }}:</p>
         <p class="config-name">{{ activeConfig }}</p>
       </div>
 
@@ -97,7 +100,7 @@ async function handleDisable() {
           class="btn btn-enable"
           :disabled="loading || !activeConfig || proxyEnabled"
         >
-          {{ loading && !proxyEnabled ? "Connecting..." : "Enable Proxy" }}
+          {{ loading && !proxyEnabled ? t('proxyControl.connecting') : t('proxyControl.enableProxy') }}
         </button>
 
         <button
@@ -105,7 +108,7 @@ async function handleDisable() {
           class="btn btn-disable"
           :disabled="loading || !proxyEnabled"
         >
-          {{ loading && proxyEnabled ? "Disconnecting..." : "Disable Proxy" }}
+          {{ loading && proxyEnabled ? t('proxyControl.disconnecting') : t('proxyControl.disableProxy') }}
         </button>
       </div>
     </div>

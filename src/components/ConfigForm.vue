@@ -1,6 +1,9 @@
 <script setup>
-import { ref, reactive, watch, defineProps, defineEmits } from "vue";
+import { ref, reactive, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import { insertConfig, getConfigInfo } from "../utils/api";
+
+const { t } = useI18n();
 
 const props = defineProps({
   editMode: {
@@ -81,7 +84,7 @@ async function loadConfig() {
       ...config
     });
   } catch (err) {
-    error.value = err.message || "Failed to load config";
+    error.value = err.message || t('common.loading');
   } finally {
     loading.value = false;
   }
@@ -93,29 +96,29 @@ async function handleSubmit() {
 
   // Validation
   if (!formData.cfg_name || !/^[a-zA-Z]+$/.test(formData.cfg_name)) {
-    error.value = "Config name must contain only letters (a-z, A-Z)";
+    error.value = t('configForm.validation.nameRequired');
     return;
   }
 
   if (!formData.client_settings.server) {
-    error.value = "Server address is required";
+    error.value = t('configForm.validation.serverRequired');
     return;
   }
 
   if (!formData.password) {
-    error.value = "Password is required";
+    error.value = t('configForm.validation.passwordRequired');
     return;
   }
 
   loading.value = true;
   try {
     await insertConfig(formData);
-    success.value = props.editMode ? "Config updated successfully!" : "Config created successfully!";
+    success.value = props.editMode ? t('configForm.success.updated') : t('configForm.success.created');
     setTimeout(() => {
       emit("saved");
     }, 1000);
   } catch (err) {
-    error.value = err.message || "Failed to save config";
+    error.value = err.message || t('configForm.error.saveFailed');
   } finally {
     loading.value = false;
   }
@@ -159,7 +162,7 @@ watch(() => props.configName, () => {
 <template>
   <div class="config-form">
     <div class="form-header">
-      <h3>{{ editMode ? "Edit Configuration" : "Add New Configuration" }}</h3>
+      <h3>{{ editMode ? t('configForm.editTitle') : t('configForm.addTitle') }}</h3>
       <button @click="handleCancel" class="close-btn">&times;</button>
     </div>
 
@@ -173,38 +176,38 @@ watch(() => props.configName, () => {
 
     <form @submit.prevent="handleSubmit" :class="{ loading: loading }">
       <div class="form-section">
-        <h4>Basic Settings</h4>
+        <h4>{{ t('configForm.basicSettings') }}</h4>
 
         <div class="form-group">
-          <label for="cfg_name">Profile Name</label>
+          <label for="cfg_name">{{ t('configForm.profileName') }}</label>
           <input
             id="cfg_name"
             v-model="formData.cfg_name"
             type="text"
-            placeholder="e.g., MyServer"
+            :placeholder="t('configForm.profileNamePlaceholder')"
             :disabled="editMode || loading"
             required
             pattern="^[a-zA-Z]+$"
-            title="Only letters (a-z, A-Z) are allowed"
+            :title="t('configForm.validation.nameRequired')"
           />
-          <small class="hint">Letters only, cannot be changed after creation</small>
+          <small class="hint">{{ t('configForm.profileNameHint') }}</small>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="server">Server Address</label>
+            <label for="server">{{ t('configForm.serverAddress') }}</label>
             <input
               id="server"
               v-model="formData.client_settings.server"
               type="text"
-              placeholder="example.com or 1.2.3.4"
+              :placeholder="t('configForm.serverAddressPlaceholder')"
               :disabled="loading"
               required
             />
           </div>
 
           <div class="form-group">
-            <label for="server_port">Server Port</label>
+            <label for="server_port">{{ t('configForm.serverPort') }}</label>
             <input
               id="server_port"
               v-model.number="formData.client_settings.server_port"
@@ -218,12 +221,12 @@ watch(() => props.configName, () => {
         </div>
 
         <div class="form-group">
-          <label for="password">Password</label>
+          <label for="password">{{ t('configForm.password') }}</label>
           <input
             id="password"
             v-model="formData.password"
             type="password"
-            placeholder="Enter password"
+            :placeholder="t('configForm.passwordPlaceholder')"
             :disabled="loading"
             required
           />
@@ -231,14 +234,14 @@ watch(() => props.configName, () => {
 
         <div class="form-row">
           <div class="form-group">
-            <label for="method">Encryption Method</label>
+            <label for="method">{{ t('configForm.encryptionMethod') }}</label>
             <select id="method" v-model="formData.method" :disabled="loading">
               <option v-for="m in methods" :key="m" :value="m">{{ m }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="protocol">Protocol</label>
+            <label for="protocol">{{ t('configForm.protocol') }}</label>
             <select id="protocol" v-model="formData.protocol" :disabled="loading">
               <option v-for="p in protocols" :key="p" :value="p">{{ p }}</option>
             </select>
@@ -247,14 +250,14 @@ watch(() => props.configName, () => {
 
         <div class="form-row">
           <div class="form-group">
-            <label for="obfs">Obfuscation</label>
+            <label for="obfs">{{ t('configForm.obfuscation') }}</label>
             <select id="obfs" v-model="formData.obfs" :disabled="loading">
               <option v-for="o in obfsList" :key="o" :value="o">{{ o }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="listen_port">Local Port</label>
+            <label for="listen_port">{{ t('configForm.localPort') }}</label>
             <input
               id="listen_port"
               v-model.number="formData.client_settings.listen_port"
@@ -268,27 +271,27 @@ watch(() => props.configName, () => {
       </div>
 
       <div class="form-section">
-        <h4>Advanced Settings</h4>
+        <h4>{{ t('configForm.advancedSettings') }}</h4>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="protocol_param">Protocol Param</label>
+            <label for="protocol_param">{{ t('configForm.protocolParam') }}</label>
             <input
               id="protocol_param"
               v-model="formData.protocol_param"
               type="text"
-              placeholder="Optional"
+              :placeholder="t('configForm.protocolParamPlaceholder')"
               :disabled="loading"
             />
           </div>
 
           <div class="form-group">
-            <label for="obfs_param">Obfs Param</label>
+            <label for="obfs_param">{{ t('configForm.obfsParam') }}</label>
             <input
               id="obfs_param"
               v-model="formData.obfs_param"
               type="text"
-              placeholder="Optional"
+              :placeholder="t('configForm.obfsParamPlaceholder')"
               :disabled="loading"
             />
           </div>
@@ -296,7 +299,7 @@ watch(() => props.configName, () => {
 
         <div class="form-row">
           <div class="form-group">
-            <label for="idle_timeout">Idle Timeout (s)</label>
+            <label for="idle_timeout">{{ t('configForm.idleTimeout') }}</label>
             <input
               id="idle_timeout"
               v-model.number="formData.idle_timeout"
@@ -307,7 +310,7 @@ watch(() => props.configName, () => {
           </div>
 
           <div class="form-group">
-            <label for="connect_timeout">Connect Timeout (s)</label>
+            <label for="connect_timeout">{{ t('configForm.connectTimeout') }}</label>
             <input
               id="connect_timeout"
               v-model.number="formData.connect_timeout"
@@ -318,7 +321,7 @@ watch(() => props.configName, () => {
           </div>
 
           <div class="form-group">
-            <label for="udp_timeout">UDP Timeout (s)</label>
+            <label for="udp_timeout">{{ t('configForm.udpTimeout') }}</label>
             <input
               id="udp_timeout"
               v-model.number="formData.udp_timeout"
@@ -337,17 +340,17 @@ watch(() => props.configName, () => {
               type="checkbox"
               :disabled="loading"
             />
-            Enable UDP Relay
+            {{ t('configForm.enableUdp') }}
           </label>
         </div>
       </div>
 
       <div class="form-actions">
         <button type="button" @click="handleCancel" class="btn btn-secondary" :disabled="loading">
-          Cancel
+          {{ t('common.cancel') }}
         </button>
         <button type="submit" class="btn btn-primary" :disabled="loading">
-          {{ loading ? "Saving..." : (editMode ? "Update" : "Create") }}
+          {{ loading ? t('common.loading') : (editMode ? t('common.update') : t('common.create')) }}
         </button>
       </div>
     </form>

@@ -1,6 +1,9 @@
 <script setup>
-import { ref, onMounted, defineProps, defineEmits } from "vue";
+import { ref, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { getConfigList, removeConfig } from "../utils/api";
+
+const { t } = useI18n();
 
 const props = defineProps({
   activeConfig: {
@@ -22,14 +25,14 @@ async function loadConfigList() {
     const list = await getConfigList();
     configList.value = list;
   } catch (err) {
-    error.value = err.message || "Failed to load config list";
+    error.value = err.message || t('configList.loadFailed');
   } finally {
     loading.value = false;
   }
 }
 
 async function handleDelete(cfgName) {
-  if (!confirm(`Are you sure you want to delete "${cfgName}"?`)) {
+  if (!confirm(t('configList.deleteConfirm', { name: cfgName }))) {
     return;
   }
   try {
@@ -37,7 +40,7 @@ async function handleDelete(cfgName) {
     emit("refresh");
     await loadConfigList();
   } catch (err) {
-    error.value = err.message || "Failed to delete config";
+    error.value = err.message || t('configList.deleteFailed');
   }
 }
 
@@ -62,9 +65,9 @@ defineExpose({
 <template>
   <div class="config-list">
     <div class="list-header">
-      <h3>Configuration Profiles</h3>
+      <h3>{{ t('configList.title') }}</h3>
       <button @click="loadConfigList" class="refresh-btn" :disabled="loading">
-        {{ loading ? "Loading..." : "Refresh" }}
+        {{ loading ? t('common.loading') : t('common.refresh') }}
       </button>
     </div>
 
@@ -73,8 +76,8 @@ defineExpose({
     </div>
 
     <div v-if="configList.length === 0 && !loading" class="empty-state">
-      <p>No configurations found</p>
-      <p class="hint">Click "Add New" to create your first configuration</p>
+      <p>{{ t('configList.empty') }}</p>
+      <p class="hint">{{ t('configList.emptyHint') }}</p>
     </div>
 
     <ul v-else class="list-container">
@@ -85,14 +88,14 @@ defineExpose({
       >
         <div class="config-info" @click="handleSelect(cfg)">
           <span class="config-name">{{ cfg }}</span>
-          <span v-if="activeConfig === cfg" class="active-badge">Active</span>
+          <span v-if="activeConfig === cfg" class="active-badge">{{ t('configList.active') }}</span>
         </div>
         <div class="config-actions">
-          <button @click="handleEdit(cfg)" class="action-btn edit-btn" title="Edit">
-            Edit
+          <button @click="handleEdit(cfg)" class="action-btn edit-btn" :title="t('common.edit')">
+            {{ t('common.edit') }}
           </button>
-          <button @click="handleDelete(cfg)" class="action-btn delete-btn" title="Delete">
-            Delete
+          <button @click="handleDelete(cfg)" class="action-btn delete-btn" :title="t('common.delete')">
+            {{ t('common.delete') }}
           </button>
         </div>
       </li>

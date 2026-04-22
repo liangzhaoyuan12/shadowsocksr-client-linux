@@ -1,8 +1,12 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useI18n } from "vue-i18n";
 import ConfigList from "./components/ConfigList.vue";
 import ConfigForm from "./components/ConfigForm.vue";
 import ProxyControl from "./components/ProxyControl.vue";
+import { getConfigInfo, disableProxy } from "./utils/api";
+
+const { t, locale, tm } = useI18n();
 
 const activeConfig = ref(null);
 const proxyEnabled = ref(false);
@@ -10,24 +14,85 @@ const showForm = ref(false);
 const editMode = ref(false);
 const editingConfig = ref("");
 const configListRef = ref(null);
+const activeConfigPort = ref(1080);
+
+// Use tm() to get raw message objects (preserves arrays)
+const steps = computed(() => tm('dashboard.steps'));
+
+// Language switch
+const languages = [
+  { code: 'zh-CN', name: '简体中文' },
+  { code: 'zh-TW', name: '繁體中文（台灣）' },
+  { code: 'zh-HK', name: '繁體中文（港澳）' },
+  { code: 'en-US', name: 'English' },
+  { code: 'ja-JP', name: '日本語' },
+  { code: 'ko-KR', name: '한국어' },
+  { code: 'ru-RU', name: 'Русский' }
+];
+
+const currentLocale = ref(locale.value);
+const langDropdownOpen = ref(false);
+
+function changeLanguage(code) {
+  const lang = languages.find(l => l.code === code);
+  if (lang) {
+    locale.value = lang.code;
+    currentLocale.value = lang.code;
+    // Save language preference to localStorage
+    localStorage.setItem('ssr-client-language', lang.code);
+  }
+  langDropdownOpen.value = false;
+}
+
+function toggleLangDropdown() {
+  langDropdownOpen.value = !langDropdownOpen.value;
+}
+
+// Close dropdown when clicking outside
+function handleClickOutside(event) {
+  const dropdown = document.querySelector('.lang-dropdown');
+  if (dropdown && !dropdown.contains(event.target)) {
+    langDropdownOpen.value = false;
+  }
+}
+
+// Get current language display name
+const currentLangName = computed(() => {
+  return languages.find(l => l.code === currentLocale.value)?.name || 'English';
+});
+
+async function updateActiveConfigPort(cfgName) {
+  if (!cfgName) {
+    activeConfigPort.value = 1080;
+    return;
+  }
+  try {
+    const config = await getConfigInfo(cfgName);
+    activeConfigPort.value = config.client_settings?.listen_port || 1080;
+  } catch (err) {
+    console.error("Failed to get config info:", err);
+    activeConfigPort.value = 1080;
+  }
+}
 
 function handleSelectConfig(cfgName) {
   if (proxyEnabled.value) {
-    if (!confirm("Changing configuration will disable the current proxy. Continue?")) {
+    if (!confirm(t('proxyControl.selectConfigFirst'))) {
       return;
     }
     disableProxyAndSelect(cfgName);
   } else {
     activeConfig.value = cfgName;
+    updateActiveConfigPort(cfgName);
   }
 }
 
 async function disableProxyAndSelect(cfgName) {
   try {
-    const { disableProxy } = await import("./utils/api");
     await disableProxy();
     proxyEnabled.value = false;
     activeConfig.value = cfgName;
+    updateActiveConfigPort(cfgName);
   } catch (err) {
     console.error("Failed to disable proxy:", err);
   }
@@ -52,6 +117,10 @@ function handleFormSaved() {
   if (configListRef.value) {
     configListRef.value.refresh();
   }
+  // Update port if the active config was edited
+  if (activeConfig.value) {
+    updateActiveConfigPort(activeConfig.value);
+  }
 }
 
 function handleFormCancelled() {
@@ -64,15 +133,48 @@ function handleProxyStatusChanged(enabled) {
   proxyEnabled.value = enabled;
   if (!enabled) {
     activeConfig.value = null;
+    activeConfigPort.value = 1080;
   }
 }
+
+// Setup click outside listener for dropdown
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <template>
   <div class="app">
     <header class="app-header">
-      <h1>ShadowsocksR Client</h1>
-      <p class="subtitle">Secure proxy client for Linux</p>
+      <div class="header-content">
+        <div class="header-left">
+          <h1>{{ t('app.title') }}</h1>
+          <p class="subtitle">{{ t('app.subtitle') }}</p>
+        </div>
+        <div class="lang-dropdown">
+          <div class="lang-dropdown-trigger" @click="toggleLangDropdown">
+            <span>{{ currentLangName }}</span>
+            <svg class="arrow" :class="{ open: langDropdownOpen }" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12">
+              <path fill="currentColor" d="M6 8L1 3h10z"/>
+            </svg>
+          </div>
+          <div v-if="langDropdownOpen" class="lang-dropdown-menu">
+            <div
+              v-for="lang in languages"
+              :key="lang.code"
+              class="lang-dropdown-item"
+              :class="{ active: currentLocale === lang.code }"
+              @click="changeLanguage(lang.code)"
+            >
+              {{ lang.name }}
+            </div>
+          </div>
+        </div>
+      </div>
     </header>
 
     <main class="app-main">
@@ -87,7 +189,7 @@ function handleProxyStatusChanged(enabled) {
             @refresh="() => {}"
           />
           <button @click="handleAddNew" class="btn-add-new">
-            + Add New Configuration
+            + {{ t('configForm.addTitle') }}
           </button>
         </aside>
 
@@ -111,19 +213,18 @@ function handleProxyStatusChanged(enabled) {
 
             <div class="info-cards">
               <div class="info-card">
-                <h4>How to Use</h4>
+                <h4>{{ t('dashboard.howToUse') }}</h4>
                 <ol>
-                  <li>Add a new configuration profile</li>
-                  <li>Select the profile from the list</li>
-                  <li>Click "Enable Proxy" to connect</li>
+                  <li v-for="(step, index) in steps" :key="index">
+                    {{ step }}
+                  </li>
                 </ol>
               </div>
 
               <div class="info-card">
-                <h4>Local Proxy Settings</h4>
+                <h4>{{ t('dashboard.localProxySettings') }}</h4>
                 <ul>
-                  <li><strong>SOCKS5:</strong> 127.0.0.1:1080</li>
-                  <li><strong>HTTP:</strong> 127.0.0.1:1080</li>
+                  <li><strong>{{ t('dashboard.socks5') }}:</strong> 127.0.0.1:{{ activeConfigPort || '1080' }}</li>
                 </ul>
               </div>
             </div>
@@ -133,7 +234,7 @@ function handleProxyStatusChanged(enabled) {
     </main>
 
     <footer class="app-footer">
-      <p>ShadowsocksR Linux Client</p>
+      <p>{{ t('footer.text') }}</p>
     </footer>
   </div>
 </template>
@@ -233,7 +334,15 @@ body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.app-header h1 {
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-left h1 {
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 4px 0;
@@ -243,6 +352,74 @@ body {
   font-size: 14px;
   opacity: 0.9;
   margin: 0;
+}
+
+/* Language Dropdown */
+.lang-dropdown {
+  position: relative;
+}
+
+.lang-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 180px;
+  user-select: none;
+}
+
+.lang-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.lang-dropdown-trigger .arrow {
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.lang-dropdown-trigger .arrow.open {
+  transform: rotate(180deg);
+}
+
+.lang-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: #2d3748;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.lang-dropdown-item {
+  padding: 10px 16px;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.lang-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lang-dropdown-item.active {
+  background: rgba(66, 153, 225, 0.3);
+  color: white;
 }
 
 .app-main {
@@ -340,6 +517,9 @@ body {
 
 .info-card li {
   margin-bottom: 6px;
+  line-height: 1.6;
+  word-wrap: break-word;
+  white-space: normal;
 }
 
 .info-card li:last-child {
@@ -363,7 +543,13 @@ body {
     padding: 16px 20px;
   }
 
-  .app-header h1 {
+  .header-content {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .header-left h1 {
     font-size: 24px;
   }
 

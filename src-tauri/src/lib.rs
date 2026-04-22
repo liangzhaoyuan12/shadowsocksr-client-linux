@@ -19,17 +19,21 @@ pub fn run() {
         // 在关闭前执行关闭ssr进程程序
         .setup(|app|{
             let main_window = app.get_webview_window("main").unwrap();
-            let window = main_window.clone();
-            main_window.on_window_event(move |event| {
+            let app_handle = app.handle().clone();
+            main_window.clone().on_window_event(move |event| {
                 match event {
                     WindowEvent::CloseRequested { api, .. } => {
                         api.prevent_close();
-                        let window = window.clone();
+                        let app_handle = app_handle.clone();
+                        let window = main_window.clone();
                         // 执行关闭ssr进程程序
-                        tokio::spawn(async move {
-                            ssr_process::disable().await.unwrap();
-
-                            let _ = window.close().unwrap();
+                        tauri::async_runtime::spawn(async move {
+                            // 尝试关闭代理，忽略错误（可能本来就没运行）
+                            let _ = ssr_process::disable().await;
+                            // 先销毁窗口引用，再退出应用
+                            drop(window);
+                            // 退出应用程序
+                            app_handle.exit(0);
                         });
                     }
                     _ => {}
@@ -39,7 +43,7 @@ pub fn run() {
         })
         .plugin(tauri_plugin_window_state::Builder::new().build())
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {}))
+        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
