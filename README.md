@@ -91,6 +91,32 @@ npm run tauri build -- --target aarch64-unknown-linux-gnu
 
 **Note**: Cross-compilation may require additional system dependencies and toolchains. Make sure you have the appropriate cross-compilation tools installed for your target architecture.
 
+#### Using Pre-built tar.gz Package (Non-deb/RPM Users)
+
+For users who are not on deb-based (Debian, Ubuntu, etc.) or rpm-based (Fedora, openSUSE, etc.) distributions, you can run the application directly from the `tar.gz` archive in the release.
+
+**Required Dependencies:**
+
+Before running the application, make sure you have the following system libraries installed:
+
+- **gtk3** - GTK+ graphical user interface library
+- **webkit2gtk4.1** - WebKitGTK for GTK 3 and libsoup 3
+
+**Installation Instructions:**
+
+1. Download the `tar.gz` package from the releases page
+2. Extract the archive:
+   ```bash
+   tar -xzf shadowsocksr-linux-*.tar.gz
+   ```
+3. Navigate to the extracted directory and run the executable:
+   ```bash
+   cd shadowsocksr-linux
+   ./shadowsocksr-client-linux
+   ```
+
+If the application fails to start, check if all required dependencies are installed on your system.
+
 ### Usage
 
 1. Launch the application from your application menu or terminal
@@ -249,6 +275,32 @@ npm run tauri build -- --target aarch64-unknown-linux-gnu
 ```
 
 **注意**：交叉编译可能需要额外的系统依赖和工具链。请确保您已为目标架构安装了适当的交叉编译工具。
+
+#### 使用预编译 tar.gz 包（非 deb/RPM 用户）
+
+对于不使用 deb 包（Debian、Ubuntu 等）或 rpm 包（Fedora、openSUSE 等）管理系统的用户，可以直接从 tar.gz 压缩包运行应用。
+
+**所需依赖：**
+
+运行应用前，请确保已安装以下系统库：
+
+- **gtk3** - GTK+ 图形用户界面库
+- **webkit2gtk4.1** - 基于 GTK 3 和 libsoup 3 的 WebKitGTK
+
+**使用说明：**
+
+1. 从发布页面下载 tar.gz 包
+2. 解压压缩包：
+   ```bash
+   tar -xzf shadowsocksr-linux-*.tar.gz
+   ```
+3. 进入解压后的目录并运行可执行文件：
+   ```bash
+   cd shadowsocksr-linux
+   ./shadowsocksr-client-linux
+   ```
+
+如果应用无法启动，请检查系统是否已安装所有必需的依赖库。
 
 ### 使用说明
 
