@@ -15,6 +15,7 @@
     "dialog:default",
     "notification:default",
     "store:default",
-    "window-state:default"
+    "window-state:default",
+    "core:window:allow-set-title"
   ]
 }
