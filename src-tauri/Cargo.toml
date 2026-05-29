@@ -1,6 +1,6 @@
 [package]
 name = "shadowsocksr-client-linux"
-version = "0.5.0"
+version = "0.6.0"
 description = "A ShadowsocksR client for linux"
 authors = ["liangzhaoyuan12"]
 edition = "2021"
@@ -37,5 +37,4 @@ tokio = { version = "1.52.1", features = ["full"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"
-tauri-plugin-window-state = "2"
 
